@@ -1,0 +1,41 @@
+package org.jboss.ddoyle.drools.rules
+
+import org.jboss.ddoyle.drools.model.SimpleEvent
+import org.kie.api.time.SessionClock
+
+declare SimpleEvent
+    @role( event )
+    @timestamp( timestamp )
+    //There is a bug in Drools which causes disabling event expiration with @expires( -1 ) not to work: https://issues.jboss.org/browse/DROOLS-984
+    //So we set expiration to a very large value.
+    @expires( 10000d )
+end
+
+/*
+ * Rule that retracts the SimpleEvent after 300 seconds (i.e. 300 seconds after its timestamp).
+ */
+rule "SimpleEvent_retract"
+when
+	$s: SimpleEvent()
+	$clock: SessionClock(currentTime after [300s] $s.technicalTimestamp)
+then
+	System.out.println("Retracting event: " + $s.getId());
+	retract($s);
+end
+
+rule "SimpleEventRule"
+    when
+       $s: SimpleEvent ()
+       not SimpleEvent (this != $s, this after[0, 30s] $s)
+    then
+       System.out.println("No event within 30 seconds of this event: " + $s.getId());
+end
+
+
+
+
+
+
+
+
+
